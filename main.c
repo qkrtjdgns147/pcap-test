@@ -14,6 +14,8 @@ struct libnet_ethernet_hdr
 
 struct libnet_ipv4_hdr
 {
+    u_int8_t ip_hl:4,      /* header length */
+        ip_v:4;         /* version */
 #if (LIBNET_LIL_ENDIAN)
     u_int8_t ip_hl:4,      /* header length */
         ip_v:4;         /* version */
@@ -155,7 +157,7 @@ int main(int argc, char* argv[]) {
         if (ip_hdr->ip_p != IPPROTO_TCP) continue;
 
         struct libnet_tcp_hdr *tcp_hdr = packet + sizeof(struct libnet_ethernet_hdr)
-                                         + sizeof(struct libnet_ipv4_hdr);
+                                         + ip_hdr->ip_hl * 4;
 
 
         //printf infomations
@@ -168,9 +170,10 @@ int main(int argc, char* argv[]) {
         printf("scr port = %d \n", ntohs(tcp_hdr->th_sport));
         printf("dst port = %d \n", ntohs(tcp_hdr->th_dport));
 
-        unsigned char *tcp_data = packet + sizeof(struct libnet_ethernet_hdr)
-                                  + sizeof(struct libnet_ipv4_hdr) + 20;
-        int tcp_data_len = tcp_hdr->th_off - 5;
+        unsigned char *tcp_data = packet + sizeof(struct libnet_ethernet_hdr) + ip_hdr->ip_hl * 4 + tcp_hdr->th_off * 4;
+        int tcp_data_len = ip_hdr->ip_len - (sizeof(struct libnet_ethernet_hdr) + ip_hdr->ip_hl * 4 + tcp_hdr->th_off * 4);
+
+        if(tcp_data_len > 10) {tcp_data_len = 10;}
 
         if(tcp_data_len > 0) {
             printf("tcp data(up to 10 bites) : ");
